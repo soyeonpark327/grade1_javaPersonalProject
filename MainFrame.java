@@ -45,8 +45,8 @@ public class MainFrame extends JFrame {
         RoleSelectPanel roleSelectPanel = new RoleSelectPanel(this);
 
         // 3개 핵심 화면 패널 생성 (골격용 임시 패널)
-        JPanel studentPanel = createDummyPanel("학생용 메인 화면 (3단계 구현 예정)", new Color(0x10, 0xB9, 0x81));
-        JPanel nutritionistPanel = createDummyPanel("영양사용 메인 화면 (4단계 구현 예정)", new Color(0x06, 0x4E, 0x3B));
+        StudentMainPanel studentPanel = new StudentMainPanel(this);
+        NutritionistMainPanel nutritionistPanel = new NutritionistMainPanel(this);
 
         // CardLayout에 패널 등록 (고유 식별자 키값 부여)
         mainContainer.add(roleSelectPanel, "ROLE_SELECT");

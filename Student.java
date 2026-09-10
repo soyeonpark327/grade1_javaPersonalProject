@@ -23,13 +23,21 @@ public class Student implements Serializable {
         updateMGrade(); // 마일리지 적립됐으면 등급 갱신 (메서드 연동)
     }
 
-    public boolean useMileage(int point) { // 숍에서 기프티콘 구매 시 마일리지 차감
+    public boolean deductMileage(int point) { // 숍에서 기프티콘 구매 시 마일리지 차감
         // 결제 시 마일리지 부족 여부 확인하기 위해 boolean을 반환함.
         if(this.mileage >= point) { // 잔액이 충분하다면?
             this.mileage -= point;
             return true; // 차감 성공
         }
         return false; // 잔액 부족으로 차감 실패
+    }
+
+    public String getName() {
+        return stuName;
+    }
+
+    public int getMileage() {
+        return mileage;
     }
 
     private void updateMGrade() { // 등급 갱신 내부 private 메서드 (외부에서 임의로 등급 조작 못하도록 보호)

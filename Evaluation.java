@@ -6,6 +6,7 @@ public class Evaluation implements Serializable {
     // 클래스 구조가 바뀌어도 기존 .dat 파일을 안전하게 읽을 수 있도록 직렬화 버전 고정값 명시적 선언
     private static final long serialVersionUID = 1L;
 
+    private String date; // 평가 작성 날짜 (학생 간이 제출 폼 전용, 기존 생성자로 만들면 null)
     private MenuItem menuItem; // 평가 대상
     private Student student; // 작성자
     private double score; // 기본 별점
@@ -28,6 +29,25 @@ public class Evaluation implements Serializable {
         this.score = score;
         this.comment = comment;
         this.hasLeftover = hasLeftover;
+    }
+
+    // 학생용 급식 평가 작성 탭의 간이 제출 폼 전용 생성자
+    // (잔반 여부 입력 항목이 아직 UI에 없어 기본값 false로 저장)
+    public Evaluation(String date, String menuName, int score, String feedback) {
+        this(new MenuItem(menuName, 0, score), DataManager.getInstance().getCurrentStudent(), score, feedback, false);
+        this.date = date;
+    }
+
+    public String getDate() {
+        return date;
+    }
+
+    public String getMenuName() {
+        return menuItem.getName();
+    }
+
+    public String getFeedback() {
+        return comment;
     }
 
     public MenuItem getMenuItem() {

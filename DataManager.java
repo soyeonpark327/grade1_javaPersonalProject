@@ -4,10 +4,52 @@
 // FileWriter: 한 개씩 나르는 것. 파일에 글자 하나 쓸 때마다 하드디스크를 건드리므로 속도 느림.
 // BufferedWriter: 버퍼에 글자들을 모아두었다가 가득 차거나 작업이 끝나면 파일에 싹 쓰므로 파일 작성 속도 빠름.
 
+// 객체 데이터를 파일로 저장 및 복원 (.dat 객체 백업 - ObjectOutputStream)
+// .dat: 자바 프로그램이 읽기 위한 이진 데이터
+// .txt: 사람이 메모장으로 열어서 바로 읽을 수 있는 텍스트 문서
+// FileWriter: 한 개씩 나르는 것. 파일에 글자 하나 쓸 때마다 하드디스크를 건드리므로 속도 느림.
+// BufferedWriter: 버퍼에 글자들을 모아두었다가 가득 차거나 작업이 끝나면 파일에 싹 쓰므로 파일 작성 속도 빠름.
+
 import java.io.*; // java.io 안에 있는 모든 클래스 불러옴.
+import java.util.ArrayList;
 import java.util.List;
 
 public class DataManager {
+    // 앱 전체에서 하나의 데이터 저장소만 쓰도록 하는 싱글턴 인스턴스
+    private static DataManager instance;
+
+    private List<Student> students = new ArrayList<>();
+    private List<MenuItem> menus = new ArrayList<>();
+    private List<Evaluation> evaluations = new ArrayList<>();
+    private Student currentStudent;
+
+    // 외부에서 new DataManager()로 직접 생성하지 못하도록 생성자를 감춤
+    private DataManager() {
+        // 로그인 기능이 아직 없어 임시로 현재 학생 한 명을 기본 등록
+        currentStudent = new Student("S001", "김민준");
+        students.add(currentStudent);
+    }
+
+    public static DataManager getInstance() {
+        if (instance == null) {
+            instance = new DataManager();
+        }
+        return instance;
+    }
+
+    public Student getCurrentStudent() {
+        return currentStudent;
+    }
+
+    public void addEvaluation(Evaluation eval) {
+        evaluations.add(eval);
+        currentStudent.addMileage(50); // 급식 평가 제출 시 50P 적립 (StudentMainPanel 안내 문구와 일치)
+    }
+
+    public List<Evaluation> getEvaluationList() {
+        return evaluations;
+    }
+
     // 1. 학생 목록, 메뉴 목록, 평가 목록을 backup.dat 파일에 바이트 형태로 통째로 저장함.
     public void saveData(List<Student> students, List<MenuItem> menus, List<Evaluation> evaluations, String filePath) {
         // students: 저장할 학생 리스트 / menus: 저장할 메뉴 리스트 / evaluations: 저장할 평가 리스트 / filePath: 저장할 파일 경로
