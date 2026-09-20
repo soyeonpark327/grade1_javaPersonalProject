@@ -33,6 +33,14 @@ public class StudentMainPanel extends JPanel {
 
         // 초기 데이터 바인딩 로직 호출
         refreshUserData();
+
+        // CardLayout으로 이 화면이 다시 보일 때마다 최신 데이터(복원/백업 결과 등) 반영
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentShown(java.awt.event.ComponentEvent e) {
+                refreshUserData();
+            }
+        });
     }
 
     // 상단 헤더 패널 (실시간 마일리지 바인딩)
@@ -130,6 +138,14 @@ public class StudentMainPanel extends JPanel {
             // 유효성 검사
             if (menu.isEmpty() || feedback.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "메뉴명과 한줄평을 입력해 주세요!", "입력 오류", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            // 날짜 형식 검증 (yyyy-MM-dd) - 문자열 정렬이 깨지지 않도록 정규화
+            try {
+                date = java.time.LocalDate.parse(date).toString();
+            } catch (java.time.format.DateTimeParseException ex) {
+                JOptionPane.showMessageDialog(this, "날짜는 2026-09-10 형식으로 입력해 주세요!", "입력 오류", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 

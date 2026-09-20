@@ -14,7 +14,7 @@ public class Evaluation implements Serializable {
     private boolean hasLeftover; // 잔반 발생 여부 (true - 잔반 있음 / false - 잔반 없음)
 
     // 생성자 유효성 검증 (정상 범위 1.0 ~ 5.0으로 교정하여 저장)
-    public Evaluation(MenuItem menuItem, Student student, double score, String comment, boolean hasLeftover) {
+    public Evaluation(String date, MenuItem menuItem, Student student, double score, String comment, boolean hasLeftover) {
         // 별점이 1미만이면 1로, 5초과면 5로 교정 (유효성 검증)
         if(score < 1.0) {
             score = 1.0;
@@ -24,6 +24,7 @@ public class Evaluation implements Serializable {
         }
 
         // 별점 교정 후 생성자 내부에서 전달받은 값을 필드에 채움.
+        this.date = date;
         this.menuItem = menuItem;
         this.student = student;
         this.score = score;
@@ -34,8 +35,7 @@ public class Evaluation implements Serializable {
     // 학생용 급식 평가 작성 탭의 간이 제출 폼 전용 생성자
     // (잔반 여부 입력 항목이 아직 UI에 없어 기본값 false로 저장)
     public Evaluation(String date, String menuName, int score, String feedback) {
-        this(new MenuItem(menuName, 0, score), DataManager.getInstance().getCurrentStudent(), score, feedback, false);
-        this.date = date;
+        this(date, new MenuItem(menuName, 0, score), DataManager.getInstance().getCurrentStudent(), score, feedback, false);
     }
 
     public String getDate() {

@@ -32,6 +32,10 @@ public class Student implements Serializable {
         return false; // 잔액 부족으로 차감 실패
     }
 
+    public String getId() {
+        return stuID;
+    }
+
     public String getName() {
         return stuName;
     }

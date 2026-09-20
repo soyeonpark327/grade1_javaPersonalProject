@@ -12,6 +12,7 @@
 
 import java.io.*; // java.io 안에 있는 모든 클래스 불러옴.
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class DataManager {
@@ -50,8 +51,47 @@ public class DataManager {
         return evaluations;
     }
 
+    public List<Student> getStudents() {
+        return students;
+    }
+
+    public List<MenuItem> getMenus() {
+        return menus;
+    }
+
+    // 백업 파일에서 복원한 데이터로 메모리 전체 교체 (현재 학생은 같은 ID의 복원 객체로 다시 연결)
+    public void replaceAllData(List<Student> newStudents, List<MenuItem> newMenus, List<Evaluation> newEvaluations) {
+        String currentId = currentStudent != null ? currentStudent.getId() : null;
+
+        students.clear();
+        students.addAll(newStudents);
+        menus.clear();
+        menus.addAll(newMenus);
+        evaluations.clear();
+        evaluations.addAll(newEvaluations);
+
+        Student restored = null;
+        for (Student st : students) {
+            if (st.getId().equals(currentId)) {
+                restored = st;
+                break;
+            }
+        }
+        if (restored == null && !students.isEmpty()) {
+            restored = students.get(0);
+        }
+        if (restored != null) {
+            currentStudent = restored;
+        }
+    }
+
+    // 현재 메모리 데이터 전체를 .dat 백업 파일로 저장 (성공 여부 반환)
+    public boolean saveData(String filePath) {
+        return saveData(students, menus, evaluations, filePath);
+    }
+
     // 1. 학생 목록, 메뉴 목록, 평가 목록을 backup.dat 파일에 바이트 형태로 통째로 저장함.
-    public void saveData(List<Student> students, List<MenuItem> menus, List<Evaluation> evaluations, String filePath) {
+    public boolean saveData(List<Student> students, List<MenuItem> menus, List<Evaluation> evaluations, String filePath) {
         // students: 저장할 학생 리스트 / menus: 저장할 메뉴 리스트 / evaluations: 저장할 평가 리스트 / filePath: 저장할 파일 경로
 
         // try-with-resources 구문: try() 괄호 안에 생성된 스트림은 작업 종료 후 자동으로 close() 됨.
@@ -64,10 +104,12 @@ public class DataManager {
             oos.writeObject(evaluations); // 평가 목록 전체 백업
 
             System.out.println("데이터 백업이 성공적으로 완료되었습니다: " + filePath);
+            return true;
         } catch(IOException e) {
             // 파일 경로 오류, 용량 부족, 권한 문제 등이 생겼을 때의 예외 처리
             System.out.println("데이터 백업 중 오류가 발생했습니다: " + e.getMessage());
             e.printStackTrace();
+            return false;
         }
     }
 
@@ -147,5 +189,26 @@ public class DataManager {
             System.err.println("리포트 파일 생성 중 오류 발생: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+
+    // 정렬 기준에 따라 평가 목록을 정렬하여 반환하는 메서드
+    public List<Evaluation> getSortedEvaluations(String criterion) {
+        // 1. 원본 데이터 보호를 위해 사본 리스트 생성
+        List<Evaluation> sortedList = new ArrayList<>(evaluations);
+
+        // 2. 조건별 정렬 처리 (람다식 활용)
+        if ("RATING_DESC".equals(criterion)) {
+            // 만족도 높은 순 (별점 내림차순: e2 vs e1)
+            sortedList.sort((e1, e2) -> Double.compare(e2.getScore(), e1.getScore()));
+        } else if ("DATE_DESC".equals(criterion)) {
+            // 최신 날짜 순 (날짜 문자열 내림차순)
+            sortedList.sort(Comparator.comparing(Evaluation::getDate, Comparator.nullsLast(Comparator.<String>reverseOrder())));
+        } else if ("WASTE_DESC".equals(criterion)) {
+            // 잔반율 높은 순 (별점이 낮을수록 잔반량이 높다고 간주하여 별점 오름차순: e1 vs e2)
+            sortedList.sort((e1, e2) -> Double.compare(e1.getScore(), e2.getScore()));
+        }
+
+        return sortedList;
     }
 }
