@@ -12,9 +12,10 @@ public class Dessert extends MenuItem {
     @Override
     public double getScore() {
         // 힉생 선호도가 높은 디저트는 긍정적 가중치를 줌
-        return (super.getScore() * 1.2);
+        double boosted = super.getScore() * 1.2;
+        return Math.min(boosted, 5.0); // 별점은 5점 만점이라, 보너스를 받아도 5.0을 넘지 않게 함
     }
-
+    
     @Override
     public void printInfo() {
         super.printInfo(); // 기본 정보 출력

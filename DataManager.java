@@ -12,23 +12,49 @@
 
 import java.io.*; // java.io 안에 있는 모든 클래스 불러옴.
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Collections;
 import java.util.List;
 
 public class DataManager {
+    // 시연용 초기 마일리지 - 발표 때 이 숫자만 바꾸고 다시 실행하면 학생이 이 마일리지로 시작함
+    /* 여기 = 0 값을 10000으로 바꾸고 쿠폰 구매 */ private static final int DEMO_INITIAL_MILEAGE = 10000;
+
     // 앱 전체에서 하나의 데이터 저장소만 쓰도록 하는 싱글턴 인스턴스
     private static DataManager instance;
 
     private List<Student> students = new ArrayList<>();
     private List<MenuItem> menus = new ArrayList<>();
     private List<Evaluation> evaluations = new ArrayList<>();
+    private List<MenuSuggestion> suggestions = new ArrayList<>(); // 학생들이 제안한 메뉴 의견함
+    private List<Announcement> announcements = new ArrayList<>(); // 영양사 공지사항 게시판
+    private List<MealSlot> mealSlots = new ArrayList<>(); // 영양사가 등록한 급식 일정
     private Student currentStudent;
 
     // 외부에서 new DataManager()로 직접 생성하지 못하도록 생성자를 감춤
     private DataManager() {
         // 로그인 기능이 아직 없어 임시로 현재 학생 한 명을 기본 등록
         currentStudent = new Student("S001", "김민준");
+        currentStudent.addMileage(DEMO_INITIAL_MILEAGE); // 시연용 초기 마일리지 적용
         students.add(currentStudent);
+
+        seedMockMealSlots(); // 시연/테스트용 가상 급식 일정 등록
+    }
+
+    // 앱을 켤 때마다 "오늘" 기준으로 며칠치 가상 급식 일정을 미리 채워 넣는 메서드
+    // (영양사가 아직 아무것도 등록하지 않아도 캘린더와 학생 평가 화면에 데이터가 보이도록 하기 위함)
+    private void seedMockMealSlots() {
+        java.time.LocalDate today = java.time.LocalDate.now();
+
+        mealSlots.add(new MealSlot(today.minusDays(1).toString(), "중식",
+                Arrays.asList("제육볶음", "계란국", "요구르트")));
+        mealSlots.add(new MealSlot(today.toString(), "중식",
+                Arrays.asList("수제 등심 돈까스", "김치찌개", "미니 초코케이크")));
+        mealSlots.add(new MealSlot(today.plusDays(1).toString(), "중식",
+                Arrays.asList("궁중떡볶이", "계란후라이", "식혜")));
+        mealSlots.add(new MealSlot(today.plusDays(2).toString(), "중식",
+                Arrays.asList("치킨마요덮밥", "미역국", "과일샐러드")));
     }
 
     public static DataManager getInstance() {
@@ -42,25 +68,92 @@ public class DataManager {
         return currentStudent;
     }
 
+    // [핵심] 학번으로 로그인 - 이미 등록된 학번이면 그 학생으로 전환, 처음 보는 학번이면 새로 등록
+    public Student loginStudent(String stuID, String name) {
+    // 처음 보는 학번이면 새 학생을 만들어서 등록
+    Student newStudent = new Student(stuID, name);
+    newStudent.addMileage(DEMO_INITIAL_MILEAGE); // 시연용 초기 마일리지 적용 (처음 로그인하는 모든 학생에게 동일하게 적용)
+    students.add(newStudent);
+    currentStudent = newStudent;
+    return newStudent;
+    }
+
+        
+    // [핵심] 현재 로그인한 학생이 같은 날짜 + 같은 메뉴로 이미 평가를 남겼는지 확인
+    public boolean hasEvaluationFor(String date, String menuName) {
+        for (Evaluation eval : evaluations) {
+            if (eval.getDate().equals(date)
+                    && eval.getMenuName().equalsIgnoreCase(menuName)
+                    && eval.getStudent() != null
+                    && eval.getStudent().getId().equals(currentStudent.getId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void addEvaluation(Evaluation eval) {
         evaluations.add(eval);
         currentStudent.addMileage(50); // 급식 평가 제출 시 50P 적립 (StudentMainPanel 안내 문구와 일치)
+        currentStudent.incrementReviewCount(); // [추가] 리뷰 횟수 증가 -> 30회/100회 기준 등급 갱신
+
+        // 새로 나온 메뉴면 menus 리스트에 등록
+        // -> MenuItem.equals()가 이름+열량 기준이라, 같은 메뉴를 여러 번 평가해도 중복으로 안 쌓임
+        MenuItem menu = eval.getMenuItem();
+        if (!menus.contains(menu)) {
+            menus.add(menu);
+        }
     }
 
+    // Collections.unmodifiableList()로 감싸서 외부에서 이 리스트를 직접 수정 못 하게 막음
+    // -> 예전엔 DataManager.getInstance().getEvaluationList().clear() 처럼 외부에서 내부 상태를
+    //    마음대로 건드릴 수 있었는데, 지금은 addEvaluation()/replaceAllData()를 거치지 않고는
+    //    평가/메뉴/학생 목록을 바꿀 방법이 없음
     public List<Evaluation> getEvaluationList() {
-        return evaluations;
+        return Collections.unmodifiableList(evaluations);
     }
 
     public List<Student> getStudents() {
-        return students;
+        return Collections.unmodifiableList(students);
     }
 
     public List<MenuItem> getMenus() {
-        return menus;
+        return Collections.unmodifiableList(menus);
+    }
+
+    // 메뉴 의견함에 새 추천 등록
+    public void addSuggestion(MenuSuggestion suggestion) {
+        suggestions.add(suggestion);
+    }
+
+    // 지금까지 등록된 메뉴 추천 전체 목록 (읽기 전용으로 반환 - 캡슐화)
+    public List<MenuSuggestion> getSuggestions() {
+        return Collections.unmodifiableList(suggestions);
+    }
+
+    // 영양사가 새 공지사항 등록
+    public void addAnnouncement(Announcement announcement) {
+        announcements.add(announcement);
+    }
+
+    // 전체 공지사항 목록 (읽기 전용으로 반환 - 캡슐화)
+    public List<Announcement> getAnnouncements() {
+        return Collections.unmodifiableList(announcements);
+    }
+
+    // 영양사가 새 급식 일정 등록
+    public void addMealSlot(MealSlot slot) {
+        mealSlots.add(slot);
+    }
+
+    // 등록된 급식 일정 전체 목록 (읽기 전용으로 반환 - 캡슐화)
+    public List<MealSlot> getMealSlots() {
+        return Collections.unmodifiableList(mealSlots);
     }
 
     // 백업 파일에서 복원한 데이터로 메모리 전체 교체 (현재 학생은 같은 ID의 복원 객체로 다시 연결)
-    public void replaceAllData(List<Student> newStudents, List<MenuItem> newMenus, List<Evaluation> newEvaluations) {
+    public void replaceAllData(List<Student> newStudents, List<MenuItem> newMenus, List<Evaluation> newEvaluations,
+                                List<MenuSuggestion> newSuggestions, List<Announcement> newAnnouncements, List<MealSlot> newMealSlots) {
         String currentId = currentStudent != null ? currentStudent.getId() : null;
 
         students.clear();
@@ -69,29 +162,33 @@ public class DataManager {
         menus.addAll(newMenus);
         evaluations.clear();
         evaluations.addAll(newEvaluations);
+        suggestions.clear();
+        suggestions.addAll(newSuggestions);
+        announcements.clear();
+        announcements.addAll(newAnnouncements);
+        mealSlots.clear();
+        mealSlots.addAll(newMealSlots);
 
-        Student restored = null;
+        // 백업 파일 안에 현재 학생과 같은 ID가 있을 때만 currentStudent를 교체함
+        // -> 못 찾았다고 아무나(첫 번째 학생)로 바꿔버리면, 복원했더니 다른 사람 계정이 되는
+        //    버그가 될 수 있어서 아예 안 바꾸는 쪽을 선택
         for (Student st : students) {
             if (st.getId().equals(currentId)) {
-                restored = st;
+                currentStudent = st;
                 break;
             }
-        }
-        if (restored == null && !students.isEmpty()) {
-            restored = students.get(0);
-        }
-        if (restored != null) {
-            currentStudent = restored;
         }
     }
 
     // 현재 메모리 데이터 전체를 .dat 백업 파일로 저장 (성공 여부 반환)
     public boolean saveData(String filePath) {
-        return saveData(students, menus, evaluations, filePath);
+        return saveData(students, menus, evaluations, suggestions, announcements, mealSlots, filePath);
     }
 
-    // 1. 학생 목록, 메뉴 목록, 평가 목록을 backup.dat 파일에 바이트 형태로 통째로 저장함.
-    public boolean saveData(List<Student> students, List<MenuItem> menus, List<Evaluation> evaluations, String filePath) {
+    // 1. 학생/메뉴/평가/추천/공지/일정 전체를 backup.dat 파일에 바이트 형태로 통째로 저장함.
+    public boolean saveData(List<Student> students, List<MenuItem> menus, List<Evaluation> evaluations,
+        List<MenuSuggestion> suggestions, List<Announcement> announcements, List<MealSlot> mealSlots,
+        String filePath) {
         // students: 저장할 학생 리스트 / menus: 저장할 메뉴 리스트 / evaluations: 저장할 평가 리스트 / filePath: 저장할 파일 경로
 
         // try-with-resources 구문: try() 괄호 안에 생성된 스트림은 작업 종료 후 자동으로 close() 됨.
@@ -102,6 +199,9 @@ public class DataManager {
             oos.writeObject(students); // 학생 목록 전체 백업
             oos.writeObject(menus); // 메뉴 목록 전체 백업
             oos.writeObject(evaluations); // 평가 목록 전체 백업
+            oos.writeObject(suggestions); // 메뉴 추천 목록 전체 백업
+            oos.writeObject(announcements); // 공지사항 전체 백업
+            oos.writeObject(mealSlots); // 급식 일정 전체 백업
 
             System.out.println("데이터 백업이 성공적으로 완료되었습니다: " + filePath);
             return true;
@@ -114,7 +214,7 @@ public class DataManager {
     }
 
     // 2. 위험 식단 목록과 분석 데이터를 사람용 report.txt 파일로 저장함.
-    public void generateReport(List<MenuItem> riskMenus, List<Evaluation> allEvaluations, String filePath) {
+    public boolean generateReport(List<MenuItem> riskMenus, List<Evaluation> allEvaluations, String filePath) {
         // riskMenus: 위험 메뉴 리스트 / allEvaluations: 잔반율 세부 계산을 위한 평가 리스트 / filePath: 저장할 리포트 파일 경로
 
         // try-with-resources 구문: 작업 종료 후 BufferedWriter와 FileWriter를 자동으로 close() 함.
@@ -143,23 +243,17 @@ public class DataManager {
 
                 int num = 1; // 메뉴 순번 표시
 
-                for(MenuItem menu : riskMenus) { // 위험 메뉴 리스트 순회하며 텍스트 작성
-                    int totalCount = 0; // 전체 평가 수
-                    int leftoverCount = 0; // 잔반 수
+                    for(MenuItem menu : riskMenus) { // 위험 메뉴 리스트 순회하며 텍스트 작성
+                    int[] stats = new EvaluationManager().getMenuWasteStats(menu, allEvaluations);
+                    int totalCount = stats[0]; // 전체 평가 수
+                    int leftoverCount = stats[1]; // 잔반 수
 
-                    for(Evaluation eval : allEvaluations) {
-                        if(eval.getMenuItem().equals(menu)) { // 해당 메뉴의 설문인지
-                            totalCount++;
-                            if(eval.isHasLeftover()) { // 잔반이 발생했는지
-                                leftoverCount++;
-                            }
-                        }
-                    }
                     // 잔반율 재계산
                     double leftoverRate = 0.0;
                     if(totalCount > 0) { // 설문 하나 이상
                         leftoverRate = ((double) leftoverCount / totalCount) * 100.0;
                     }
+
 
                     // 리포트 본문
                     bw.write(num + ". 메뉴명: " + menu.getName());
@@ -185,9 +279,11 @@ public class DataManager {
             bw.newLine();
 
             System.out.println("리포트 파일 생성이 완료되었습니다: " + filePath);
+            return true;
         } catch (IOException e) {
             System.err.println("리포트 파일 생성 중 오류 발생: " + e.getMessage());
             e.printStackTrace();
+            return false;
         }
     }
 

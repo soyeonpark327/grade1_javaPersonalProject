@@ -16,7 +16,8 @@ public class MainDish extends MenuItem {
     @Override
     public double getScore() {
         if(hasLeftover) { // 잔반을 남겼다면? (true라면)
-            return (super.getScore() - 1.5); // 부모 점수에서 1.5 값을 뺀 값 리턴
+            double adjusted = super.getScore() - 1.5; // 부모 점수에서 1.5 값을 뺌
+            return Math.max(adjusted, 0); // 음수가 되지 않도록 0으로 하한선을 둠
         } else {
             return super.getScore(); // 잔반 없을 시 원래 점수 출력
         }

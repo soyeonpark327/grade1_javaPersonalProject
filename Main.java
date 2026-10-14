@@ -1,3 +1,5 @@
+// 1주차에 MenuItem 상속 구조(MainDish/Dessert)만 독립적으로 테스트해보려고 만든 데모 코드. 
+
 import java.util.ArrayList;
 import java.util.List;
 

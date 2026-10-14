@@ -38,6 +38,19 @@ public class Evaluation implements Serializable {
         this(date, new MenuItem(menuName, 0, score), DataManager.getInstance().getCurrentStudent(), score, feedback, false);
     }
 
+    // [핵심] 별점 -> 추정 잔반율(%) 변환 공식을 한 곳에 모음
+    // -> 여러 클래스에서 각자 (5.0 - score) * 20을 따로 계산하면, 나중에 공식이 바뀔 때 전부 찾아 고쳐야 함
+    public static double estimateWasteRate(double score) {
+        return (5.0 - score) * 20;
+    }
+
+    // 학생이 고른 메뉴 종류(MainDish/Dessert)와 잔반 여부를 그대로 받아 저장하는 생성자
+    // (MenuItem을 여기서 새로 안 만들고, StudentMainPanel에서 이미 만든 걸 그대로 받음)
+    public Evaluation(String date, MenuItem menuItem, int score, String feedback, boolean hasLeftover) {
+        this(date, menuItem, DataManager.getInstance().getCurrentStudent(), score, feedback, hasLeftover);
+    }
+
+
     public String getDate() {
         return date;
     }

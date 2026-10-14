@@ -41,6 +41,8 @@ public class RoleSelectPanel extends JPanel {
         btnStudent.setFont(new Font("맑은 고딕", Font.BOLD, 18));
         btnStudent.setBackground(new Color(0x10, 0xB9, 0x81));
         btnStudent.setForeground(Color.WHITE);
+        btnStudent.setOpaque(true); // macOS에서 버튼 배경색이 무시되는 문제 방지
+        btnStudent.setBorderPainted(false);
         btnStudent.setPreferredSize(new Dimension(200, 90)); // 버튼의 고정 크기 지정: 가로 200px, 세로 90px
         btnStudent.setFocusPainted(false); // 클릭 시 버튼 글자 주변에 생기는 외곽 점선 표시 제거
 
@@ -51,8 +53,31 @@ public class RoleSelectPanel extends JPanel {
         gbc.insets = new Insets(0, 15, 0, 15); // 버튼 좌우에 15px씩 여백 배치
 
         // 버튼 클릭 이벤트 리스너 (람다식)
-        // 클릭 시 MainFrame의 showScreen을 호출하여 "STUDENT" 화면으로 전환
-        btnStudent.addActionListener(e -> mainFrame.showScreen("STUDENT"));
+        // 클릭 시 MainFrame의 showScreen을 호출하여 STUDENT 화면으로 전환
+        btnStudent.addActionListener(e -> {
+            // [변경] 이름만 받던 것에서 학번 + 이름을 받는 로그인 방식으로 변경
+            String stuId = JOptionPane.showInputDialog(this, "학번을 입력해 주세요:", "학생 로그인", JOptionPane.PLAIN_MESSAGE);
+            if (stuId == null || stuId.trim().isEmpty()) {
+                return; // 취소하거나 빈 값이면 로그인 취소
+            }
+
+            String name = JOptionPane.showInputDialog(this, "이름을 입력해 주세요:", "학생 로그인", JOptionPane.PLAIN_MESSAGE);
+            if (name == null || name.trim().isEmpty()) {
+                return;
+            }
+
+            Student student = DataManager.getInstance().loginStudent(stuId.trim(), name.trim());
+
+            // 로그인할 때마다 "해가 바뀌었는지" 확인 (예전엔 앱 켤 때 딱 1번만, 기본 학생 기준으로만 체크하던 버그가 있었음)
+            if (student.needsYearlyReset()) {
+                Notice.show(this, "새해가 되어 평가 횟수와 등급이 초기화되었습니다!", "연간 등급 초기화", JOptionPane.WARNING_MESSAGE);
+                student.resetForNewYear();
+            }
+
+            Notice.show(this, name.trim() + "님 환영합니다! (현재 마일리지: " + student.getMileage() + "P)",
+                    "로그인 완료", JOptionPane.INFORMATION_MESSAGE);
+            mainFrame.showScreen("STUDENT");
+        });
 
         // 설정한 gbc 규칙을 적용하여 패널에 학생용 버튼 추가
         add(btnStudent, gbc);
@@ -63,6 +88,8 @@ public class RoleSelectPanel extends JPanel {
         btnNutritionist.setFont(new Font("맑은 고딕", Font.BOLD, 18));
         btnNutritionist.setBackground(new Color(0x06, 0x4E, 0x3B));
         btnNutritionist.setForeground(Color.WHITE);
+        btnNutritionist.setOpaque(true); // macOS에서 버튼 배경색이 무시되는 문제 방지
+        btnNutritionist.setBorderPainted(false);
         btnNutritionist.setPreferredSize(new Dimension(200, 90)); // 버튼 고정 크기 지정: 가로 200px, 세로 90px
         btnNutritionist.setFocusPainted(false); // 클릭 시 외곽 점선 표시 제거
 
