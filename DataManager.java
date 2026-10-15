@@ -21,6 +21,10 @@ public class DataManager {
     // 시연용 초기 마일리지 - 발표 때 이 숫자만 바꾸고 다시 실행하면 학생이 이 마일리지로 시작함
     /* 여기 = 0 값을 10000으로 바꾸고 쿠폰 구매 */ private static final int DEMO_INITIAL_MILEAGE = 10000;
 
+    // 영양사(관리자) 전용 계정 - 학생과 달리 아무나 가입할 수 없고 이 아이디/비번으로만 접속 가능
+    private static final String ADMIN_ID = "admin";
+    private static final String ADMIN_PW = "mealback1234";
+
     // 앱 전체에서 하나의 데이터 저장소만 쓰도록 하는 싱글턴 인스턴스
     private static DataManager instance;
 
@@ -70,15 +74,30 @@ public class DataManager {
 
     // [핵심] 학번으로 로그인 - 이미 등록된 학번이면 그 학생으로 전환, 처음 보는 학번이면 새로 등록
     public Student loginStudent(String stuID, String name) {
-    // 처음 보는 학번이면 새 학생을 만들어서 등록
-    Student newStudent = new Student(stuID, name);
-    newStudent.addMileage(DEMO_INITIAL_MILEAGE); // 시연용 초기 마일리지 적용 (처음 로그인하는 모든 학생에게 동일하게 적용)
-    students.add(newStudent);
-    currentStudent = newStudent;
-    return newStudent;
+        // 1) 이미 등록된 학번인지 students 리스트를 처음부터 끝까지 확인
+        for (Student st : students) {
+            if (st.getId().equals(stuID)) {
+                currentStudent = st; // 찾았으면 그 학생으로 전환 (마일리지, 평가 기록 그대로 유지)
+                return st;
+            }
+        }
+
+        // 2) 반복문을 다 돌았는데도 못 찾았으면 = 처음 보는 학번 → 새 학생을 만들어서 등록
+        Student newStudent = new Student(stuID, name);
+        newStudent.addMileage(DEMO_INITIAL_MILEAGE); // 시연용 초기 마일리지 적용 (처음 로그인하는 학생에게만 적용)
+        students.add(newStudent);
+        currentStudent = newStudent;
+        return newStudent;
     }
 
-        
+    // [핵심] 영양사(관리자) 로그인 - 입력한 아이디/비번이 관리자 계정과 일치하는지 확인
+    // char[]로 받는 이유: 비밀번호 칸(JPasswordField)의 getPassword()가 String이 아니라 char[]를 돌려주기 때문
+    public boolean loginNutritionist(String id, char[] password) {
+        return ADMIN_ID.equals(id) && Arrays.equals(ADMIN_PW.toCharArray(), password);
+    }
+
+
+
     // [핵심] 현재 로그인한 학생이 같은 날짜 + 같은 메뉴로 이미 평가를 남겼는지 확인
     public boolean hasEvaluationFor(String date, String menuName) {
         for (Evaluation eval : evaluations) {

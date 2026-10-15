@@ -100,8 +100,33 @@ public class RoleSelectPanel extends JPanel {
         gbc.insets = new Insets(0, 15, 0, 15); // 버튼 좌우 15px 여백
 
         // 버튼 클릭 이벤트 리스너 (람다식)
-        // 클릭 시 MainFrame의 showScreen을 호출하여 "NUTRITIONIST" 화면으로 전환
-        btnNutritionist.addActionListener(e -> mainFrame.showScreen("NUTRITIONIST"));
+        // 클릭 시 관리자 아이디/비번을 확인한 뒤, 맞으면 "NUTRITIONIST" 화면으로 전환
+        btnNutritionist.addActionListener(e -> {
+            // 아이디 칸 + 비밀번호 칸을 한 팝업에 같이 보여주기 위해 작은 패널을 따로 만듦
+            JTextField idField = new JTextField(15);
+            JPasswordField pwField = new JPasswordField(15); // 입력한 글자가 ●●● 으로 가려지는 칸
+
+            JPanel loginPanel = new JPanel(new GridLayout(2, 2, 5, 5)); // 2행 2열 바둑판 (칸 사이 5px 간격)
+            loginPanel.add(new JLabel("아이디:"));
+            loginPanel.add(idField);
+            loginPanel.add(new JLabel("비밀번호:"));
+            loginPanel.add(pwField);
+
+            // 확인/취소 버튼이 있는 팝업에 위에서 만든 패널을 통째로 넣어서 띄움
+            int result = JOptionPane.showConfirmDialog(this, loginPanel, "영양사 로그인",
+                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            if (result != JOptionPane.OK_OPTION) {
+                return; // 취소 버튼이나 X를 누르면 로그인 취소
+            }
+
+            if (DataManager.getInstance().loginNutritionist(idField.getText().trim(), pwField.getPassword())) {
+                Notice.show(this, "영양사님 환영합니다!", "로그인 완료", JOptionPane.INFORMATION_MESSAGE);
+                mainFrame.showScreen("NUTRITIONIST");
+            } else {
+                Notice.show(this, "아이디 또는 비밀번호가 올바르지 않습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
 
         // 설정한 gbc 규칙을 적용하여 패널에 영양사용 버튼 추가
         add(btnNutritionist, gbc);
