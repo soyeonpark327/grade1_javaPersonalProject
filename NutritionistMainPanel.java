@@ -375,15 +375,18 @@ public class NutritionistMainPanel extends JPanel {
         JButton btnSortWaste = new JButton("잔반율 높은 순");
         JButton btnSortRating = new JButton("만족도 높은 순");
         JButton btnSortDate = new JButton("최신 날짜 순");
+        JButton btnSortSingleDay = new JButton("특정 날짜만 보기"); // 하루치 평가만 모아보는 정렬
 
         btnSortWaste.setFont(new Font("맑은 고딕", Font.PLAIN, 12));
         btnSortRating.setFont(new Font("맑은 고딕", Font.PLAIN, 12));
         btnSortDate.setFont(new Font("맑은 고딕", Font.PLAIN, 12));
+        btnSortSingleDay.setFont(new Font("맑은 고딕", Font.PLAIN, 12));
 
         filterPanel.add(lblFilter);
         filterPanel.add(btnSortWaste);
         filterPanel.add(btnSortRating);
         filterPanel.add(btnSortDate);
+        filterPanel.add(btnSortSingleDay);
 
         // 날짜 범위 필터 UI (두 번째 줄)
         JPanel dateFilterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
@@ -450,24 +453,49 @@ public class NutritionistMainPanel extends JPanel {
         btnSortWaste.addActionListener(e -> {
             currentSort = "WASTE_DESC";
             refreshStatsTable(statsBuilder.getFilteredAndSortedEvaluations(currentSort, filterStartDate, filterEndDate));
-            markActiveSortButton(btnSortWaste, btnSortWaste, btnSortRating, btnSortDate);
+            markActiveSortButton(btnSortWaste, btnSortWaste, btnSortRating, btnSortDate, btnSortSingleDay);
         });
 
         btnSortRating.addActionListener(e -> {
             currentSort = "RATING_DESC";
             refreshStatsTable(statsBuilder.getFilteredAndSortedEvaluations(currentSort, filterStartDate, filterEndDate));
-            markActiveSortButton(btnSortRating, btnSortWaste, btnSortRating, btnSortDate);
+            markActiveSortButton(btnSortRating, btnSortWaste, btnSortRating, btnSortDate, btnSortSingleDay);
         });
 
         btnSortDate.addActionListener(e -> {
             currentSort = "DATE_DESC";
             refreshStatsTable(statsBuilder.getFilteredAndSortedEvaluations(currentSort, filterStartDate, filterEndDate));
-            markActiveSortButton(btnSortDate, btnSortWaste, btnSortRating, btnSortDate);
+            markActiveSortButton(btnSortDate, btnSortWaste, btnSortRating, btnSortDate, btnSortSingleDay);
+        });
+
+        // [추가] 특정 날짜 하루치 평가만 모아보기 - 날짜 하나를 입력받아 기간 조회(시작일=종료일)를 재사용
+        btnSortSingleDay.addActionListener(e -> {
+            String input = JOptionPane.showInputDialog(this, "조회할 날짜를 입력해 주세요 (예: 2026-10-14):",
+                    "특정 날짜만 보기", JOptionPane.PLAIN_MESSAGE);
+            if (input == null || input.trim().isEmpty()) {
+                return; // 취소하거나 빈 값이면 아무것도 안 함
+            }
+
+            String date = input.trim();
+            try {
+                date = java.time.LocalDate.parse(date).toString(); // 형식 검증 및 정규화
+            } catch (java.time.format.DateTimeParseException ex) {
+                Notice.show(this, "날짜는 2026-10-14 형식으로 입력해 주세요!", "입력 오류", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            filterStartDate = date;
+            filterEndDate = date;
+            txtStartDate.setText(date);
+            txtEndDate.setText(date);
+
+            refreshStatsTable(statsBuilder.getFilteredAndSortedEvaluations(currentSort, filterStartDate, filterEndDate));
+            markActiveSortButton(btnSortSingleDay, btnSortWaste, btnSortRating, btnSortDate, btnSortSingleDay);
         });
 
         // 초기 화면 로딩 시 최신 날짜 순으로 데이터 표기
         refreshStatsTable(statsBuilder.getFilteredAndSortedEvaluations(currentSort, filterStartDate, filterEndDate));
-        markActiveSortButton(btnSortDate, btnSortWaste, btnSortRating, btnSortDate); // 기본값(최신순) 강조 표시
+        markActiveSortButton(btnSortDate, btnSortWaste, btnSortRating, btnSortDate, btnSortSingleDay); // 기본값(최신순) 강조 표시
 
         JScrollPane scrollPane = new JScrollPane(table);
 
@@ -556,7 +584,10 @@ public class NutritionistMainPanel extends JPanel {
         List<Evaluation> allEvals = DataManager.getInstance().getEvaluationList(); // 메뉴별 집계는 항상 전체 데이터 기준으로 계산
 
         for (Evaluation eval : evaluationList) {
-            int estimatedWasteRate = (int) Evaluation.estimateWasteRate(eval.getScore());
+            // [수정] 잔반 감점(MainDish)/가중치(Dessert)가 반영된 보정 점수 기준으로 통일
+            // -> 대시보드 TOP3와 다른 값이 나오던 문제 해결 (전에는 보정 전 원점수를 썼었음)
+            double adjustedScore = eval.getMenuItem().getScore();
+            int estimatedWasteRate = (int) Evaluation.estimateWasteRate(adjustedScore);
 
             // 이 평가가 속한 메뉴의 "총 후기 수"와 "잔반 후기 수"를 계산
             int[] menuStats = evalManager.getMenuWasteStats(eval.getMenuItem(), allEvals);
@@ -565,7 +596,7 @@ public class NutritionistMainPanel extends JPanel {
                     eval.getDate(),
                     eval.getMenuName(),
                     estimatedWasteRate + "%",
-                    eval.getScore() + " / 5.0",
+                    String.format("%.1f", adjustedScore) + " / 5.0",
                     menuStats[0] + "건",
                     menuStats[1] + "건",
                     eval.getFeedback()

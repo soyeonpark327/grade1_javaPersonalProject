@@ -40,7 +40,8 @@ public class NutritionistStatsBuilder {
 
         double totalScoreSum = 0.0;
         for (Evaluation eval : evals) {
-            totalScoreSum += eval.getScore();
+            // 잔반 감점(MainDish)/가중치(Dessert)가 반영된 보정 점수로 계산해야 TOP3 등 다른 화면과 일치함
+            totalScoreSum += eval.getMenuItem().getScore();
         }
         double averageScore = totalScoreSum / evals.size();
         double averageWasteRate = Evaluation.estimateWasteRate(averageScore);
@@ -121,7 +122,8 @@ public class NutritionistStatsBuilder {
 
         if (totalCount > 0) {
             for (Evaluation eval : evals) {
-                totalScoreSum += eval.getScore();
+                // 잔반 감점(MainDish)/가중치(Dessert)가 반영된 보정 점수로 계산해야 TOP3 등 다른 화면과 일치함
+                totalScoreSum += eval.getMenuItem().getScore();
             }
             averageScore = totalScoreSum / totalCount;
             averageWasteRate = Evaluation.estimateWasteRate(averageScore);
@@ -183,7 +185,8 @@ public class NutritionistStatsBuilder {
                 if (!scoresByMenu.containsKey(name)) {
                     scoresByMenu.put(name, new ArrayList<>());
                 }
-                scoresByMenu.get(name).add(eval.getScore());
+                // 잔반 감점(MainDish)/가중치(Dessert)가 반영된 보정 점수로 계산해야 TOP3 등 다른 화면과 일치함
+                scoresByMenu.get(name).add(eval.getMenuItem().getScore());
             }
         }
 
